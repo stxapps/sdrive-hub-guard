@@ -1,0 +1,22 @@
+{
+  "name": "sdrive-hub-guard",
+  "version": "0.0.0",
+  "private": true,
+  "engines": {
+    "node": "20.x.x"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "start-local": "tsc && GOOGLE_APPLICATION_CREDENTIALS=~/.config/gcloud/legacy_credentials/brace@brace.to/sdrive-001-adeb2f2dcdc2.json node dist/index.js",
+    "deploy": "tsc && gcloud run jobs deploy sdrive-hub-guard --source . --cpu=1 --memory=512Mi --tasks=1 --max-retries=0 --task-timeout=20m --region=us-central1 --project=sdrive-001"
+  },
+  "dependencies": {
+    "@google-cloud/logging": "^11.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.2.0",
+    "typescript": "^5.9.2"
+  }
+}
