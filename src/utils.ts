@@ -3,7 +3,7 @@ export const isObject = (val) => {
 };
 
 export const isString = (val) => {
-  return typeof val === 'string' || val instanceof String;
+  return typeof val === 'string';
 };
 
 export const isNumber = val => {
