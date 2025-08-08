@@ -2,16 +2,18 @@ import path from 'path';
 import url from 'url';
 import { Logging } from '@google-cloud/logging';
 import { Datastore } from '@google-cloud/datastore';
+import { FirewallClient } from '@google-cloud/appengine-admin';
 import protobuf from 'protobufjs';
 
 import { isObject, isFldStr, randomString } from './utils.js';
 import { BLACKLIST } from './const.js';
 
 const DURATION = 3 * 60 * 60 * 1000;
-const MAX_N_REQS = 150;
+const MAX_N_REQS = 360;
 
 const logging = new Logging();
 const datastore = new Datastore();
+const firewall = new FirewallClient();
 
 const ptbRt = new protobuf.Root();
 ptbRt.resolvePath = (_, target) => {
@@ -179,11 +181,13 @@ const blacklist = async (logKey, counts) => {
       { name: 'type', value: 1 },
       { name: 'createDate', value: new Date() },
     ];
-    //await datastore.save({ key, data: data });
+    await datastore.save({ key, data: data });
     console.log(`(${logKey}) blacklist addr: ${addr}`);
 
     for (const ip of ips) {
-
+      const rule = { action: 2, sourceRange: ip };
+      await firewall.createIngressRule({ rule });
+      console.log(`(${logKey}) deny ip: ${ip}`);
     }
   }
 };
