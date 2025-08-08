@@ -13,14 +13,15 @@ const MAX_N_REQS = 150;
 const logging = new Logging();
 const datastore = new Datastore();
 
-const __filename = url.fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const loadedProtobuf = protobuf.loadSync(
-  path.resolve(__dirname, 'protos/request_log.proto')
-);
-const ReqLogProtobuf = loadedProtobuf.lookupType(
-  'google.appengine.logging.v1.RequestLog'
-);
+const ptbRt = new protobuf.Root();
+ptbRt.resolvePath = (_, target) => {
+  const __filename = url.fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+  const rootDir = path.resolve(__dirname, "protos");
+  return path.join(rootDir, target);
+};
+ptbRt.loadSync('google/appengine/logging/v1/request_log.proto');
+const ReqLogProtobuf = ptbRt.lookupType('google.appengine.logging.v1.RequestLog');
 
 const getLogs = async (logKey) => {
   const ts = (new Date(Date.now() - DURATION)).toISOString();
@@ -97,8 +98,10 @@ const getDataPerAddr = (logKey, df) => {
   /*
     dataPerAddr = {
       addr: {
-        key: { reqLogs: [], appLogs: [] },
+        key: { reqLogs: [...], appLogs: [...] },
+        ...
       },
+      ...
     };
   */
 
