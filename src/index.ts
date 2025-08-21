@@ -77,7 +77,22 @@ const getDataFrame = (logKey, logs) => {
       type = 'Req';
       trace = log.metadata.trace.split('/').slice(-1)[0];
     } else {
-      console.log(`(${logKey}) found unsupported log:`, log);
+      let doPrint = true;
+      if (isObject(log.metadata)) {
+        if (
+          isFldStr(log.metadata.logName) &&
+          log.metadata.logName.endsWith('google_init.log')
+        ) {
+          doPrint = false;
+        } else if ([
+          'Press Ctrl+C to quit.',
+          'Server listening on port 8081...',
+        ].includes(log.metadata.textPayload)) {
+          doPrint = false;
+        }
+      }
+
+      if (doPrint) console.log(`(${logKey}) found unsupported log:`, log);
       continue;
     }
     df.push({ type, key, addr, trace, log });
