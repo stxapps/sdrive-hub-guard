@@ -5,6 +5,7 @@ import { Datastore } from '@google-cloud/datastore';
 import { FirewallClient } from '@google-cloud/appengine-admin';
 import protobuf from 'protobufjs';
 
+import { getInfosPerAddr } from './data.js';
 import { isObject, isFldStr, randomString } from './utils.js';
 import { BLACKLIST } from './const.js';
 
@@ -178,19 +179,19 @@ const getCounts = (logKey, dataPerAddr) => {
   }
   counts.sort((a, b) => b.nReqs - a.nReqs);
 
-  for (const { addr, nReqs } of counts) {
-    console.log(`addr: ${addr}, nReqs: ${nReqs}`);
+  const excdCounts: any[] = [];
+  for (const count of counts) {
+    console.log(`addr: ${count.addr}, nReqs: ${count.nReqs}`);
+    if (count.nReqs > MAX_N_REQS) excdCounts.push(count);
   }
 
-  return counts;
+  return { counts, excdCounts };
 };
 
-const blacklist = async (logKey, counts) => {
+const blacklist = async (logKey, counts, infosPerAddr) => {
   // if within the duration, nReqs is more than MAX_N_LOGS,
   //  add the address to the blacklist and ips to the firewall rules.
-  for (const { addr, nReqs, ips } of counts) {
-    if (nReqs <= MAX_N_REQS) continue;
-
+  for (const { addr, ips } of counts) {
     const key = datastore.key([BLACKLIST, addr]);
     const data = [
       { name: 'type', value: 1 },
@@ -215,8 +216,10 @@ const main = async () => {
   const logs = await getLogs(logKey);
   const df = getDataFrame(logKey, logs)
   const dataPerAddr = getDataPerAddr(logKey, df);
-  const counts = getCounts(logKey, dataPerAddr);
-  await blacklist(logKey, counts)
+  const { excdCounts } = getCounts(logKey, dataPerAddr);
+
+  const infosPerAddr = await getInfosPerAddr(logKey, excdCounts.map(c => c.addr));
+  await blacklist(logKey, excdCounts, infosPerAddr);
 
   console.log(`(${logKey}) Worker finishes on ${(new Date()).toISOString()}.`);
 };
